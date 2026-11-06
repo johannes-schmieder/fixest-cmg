@@ -21,10 +21,12 @@ demean(
   na.rm = TRUE,
   as.matrix = is.atomic(X),
   im_confident = FALSE,
+  demeaner = NULL,
   ...
 )
 }
 \arguments{
+\item{demeaner}{NULL (the native default), or an optional two-way OLS configuration created with \code{\link{CmgDemeaner}}.}
 \item{X}{A matrix, vector, data.frame or a list OR a formula OR a \code{\link{feols}} estimation. If equal
 to a formula, then the argument \code{data} is required, and it must be of the type:
 \code{x1 + x2 ~ f1 + fe2} with on the LHS the variables to be centered, and on the RHS the factors

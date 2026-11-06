@@ -18,6 +18,7 @@ export(r2, fitstat, fitstat_register, wald)
 export(fixest_startup_msg)
 export(check_conv_feols)
 export(demeaning_algo)
+export(CmgDemeaner)
 # did
 export(did_means)
 # graph

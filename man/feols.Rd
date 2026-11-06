@@ -40,6 +40,7 @@ feols(
   mem.clean = FALSE,
   only.env = FALSE,
   env,
+  demeaner = NULL,
   ...
 )
 
@@ -72,10 +73,12 @@ feols.fit(
   only.env = FALSE,
   only.coef = FALSE,
   env,
+  demeaner = NULL,
   ...
 )
 }
 \arguments{
+\item{demeaner}{NULL (the native default), or an optional two-way OLS configuration created with \code{\link{CmgDemeaner}}.}
 \item{fml}{A formula representing the relation to be estimated. For example: \code{fml = z~x+y}.
 To include fixed-effects, insert them in this formula using a pipe:
 e.g. \code{fml = z~x+y | fe_1+fe_2}. You can combine two fixed-effects with \code{^}:

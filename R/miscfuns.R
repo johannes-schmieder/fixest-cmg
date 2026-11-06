@@ -2379,8 +2379,17 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
                   iter = 2000, tol = 1e-6, 
                   fixef.reorder = TRUE, fixef.algo = NULL,
                   na.rm = TRUE, as.matrix = is.atomic(X),
-                  im_confident = FALSE, ...) {
+                  im_confident = FALSE, demeaner = NULL, ...) {
 
+
+  if(!is.null(demeaner)){
+    fixest_check_cmg_demeaner(demeaner)
+    if(!missing(tol) || !missing(iter) || !missing(fixef.algo)){
+      stop("Put tolerance and iteration controls in CmgDemeaner(); do not also supply tol, iter or fixef.algo.")
+    }
+    tol = demeaner$tol
+    iter = demeaner$maxiter
+  }
 
   ANY_NA = FALSE
   # SK: to reassign class if X is data.frame, data.table or tibble. Optimally you would preserve all attributes,
@@ -2425,7 +2434,7 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
         stop("This function only works for 'feols' estimations (not for ", X$method, ").")
       }
 
-      if(!fe_info && !is.null(X$y_demeaned)){
+      if(is.null(demeaner) && !fe_info && !is.null(X$y_demeaned)){
         return(cbind(X$y_demeaned, X$X_demeaned))
       }
 
@@ -2467,8 +2476,8 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
       fml = .xpd(lhs = fml_vars, rhs = fml_fixef)
 
       mc = match.call()
-      if(!"tol" %in% names(mc)) tol = X$fixef.tol
-      if(!"iter" %in% names(mc)) iter = X$fixef.iter
+      if(is.null(demeaner) && !"tol" %in% names(mc)) tol = X$fixef.tol
+      if(is.null(demeaner) && !"iter" %in% names(mc)) iter = X$fixef.iter
 
       weights = X[["weights"]]
 
@@ -2814,7 +2823,7 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
     X = 0
   }
 
-  vars_demean = cpp_demean(y, X, weights, iterMax = iter,
+  vars_demean = fixest_demean(y, X, weights, iterMax = iter,
                            diffMax = tol, r_nb_id_Q = fixef_sizes,
                            fe_id_list = all_index_info$index, table_id_I = fixef_table_vector,
                            slope_flag_Q = slope.flag, slope_vars_list = slope.vars,
@@ -2822,7 +2831,8 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
                            algo_extraProj = fixef.algo$extraProj, 
                            algo_iter_warmup = fixef.algo$iter_warmup, 
                            algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                           algo_iter_grandAcc = fixef.algo$iter_grandAcc)
+                           algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                           demeaner = demeaner)
 
   # Internal call
   if(fe_info){

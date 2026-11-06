@@ -48,6 +48,8 @@
 #' variables will return a `fixest_multi` object.
 #' @param X Numeric matrix of the regressors.
 #' @param fixef_df Matrix/data.frame of the fixed-effects.
+#' @param demeaner NULL (the native default) or a two-way OLS configuration
+#'   created by [CmgDemeaner()].
 #' @param fixef.algo `NULL` (default) or an object of class `demeaning_algo` obtained with
 #' the function [`demeaning_algo`]. If `NULL`, it falls to the defaults of [`demeaning_algo`]. 
 #' This arguments controls the settings of the demeaning algorithm.
@@ -513,8 +515,11 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                  lean = FALSE, verbose = 0, warn = TRUE, notes = getFixest_notes(),
                  only.coef = FALSE, data.save = FALSE,
                  fixef.keep_names = NULL, demeaned = FALSE, mem.clean = FALSE, 
-                 only.env = FALSE, env, ...){
+                 only.env = FALSE, env, demeaner = NULL, ...){
 
+  if(!missing(env) && !is.null(demeaner)){
+    stop("When reusing an environment, set demeaner when creating that environment.")
+  }
   dots = list(...)
 
   # 1st: is the call coming from feglm?
@@ -565,7 +570,7 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                 panel.duplicate.method = panel.duplicate.method, 
                 fixef = fixef, fixef.rm = fixef.rm,
                 fixef.tol = fixef.tol, fixef.iter = fixef.iter, 
-                fixef.algo = fixef.algo, collin.tol = collin.tol,
+                fixef.algo = fixef.algo, demeaner = demeaner, collin.tol = collin.tol,
                 nthreads = nthreads, lean = lean, verbose = verbose, warn = warn,
                 notes = notes, only.coef = only.coef, data.save = data.save,
                 fixef.keep_names = fixef.keep_names, demeaned = demeaned,
@@ -1057,7 +1062,7 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
 
           if(mem.clean) gc()
           
-          vars_demean = cpp_demean(my_lhs, X_all, weights, iterMax = fixef.iter,
+          vars_demean = fixest_demean(my_lhs, X_all, weights, iterMax = fixef.iter,
                                    diffMax = fixef.tol, r_nb_id_Q = fixef_sizes,
                                    fe_id_list = fixef_id_list, table_id_I = fixef_table_vector,
                                    slope_flag_Q = slope_flag, slope_vars_list = slope_vars,
@@ -1065,14 +1070,15 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                                    algo_extraProj = fixef.algo$extraProj, 
                                    algo_iter_warmup = fixef.algo$iter_warmup, 
                                    algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                                   algo_iter_grandAcc = fixef.algo$iter_grandAcc)
+                                   algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                             demeaner = get0("demeaner", env, ifnotfound = NULL))
 
           X_demean = vars_demean$X_demean
           y_demean = vars_demean$y_demean
 
           if(do_iv){
             
-            iv_vars_demean = cpp_demean(iv_lhs, iv.mat, weights, iterMax = fixef.iter,
+            iv_vars_demean = fixest_demean(iv_lhs, iv.mat, weights, iterMax = fixef.iter,
                                         diffMax = fixef.tol, r_nb_id_Q = fixef_sizes,
                                         fe_id_list = fixef_id_list, table_id_I = fixef_table_vector,
                                         slope_flag_Q = slope_flag, slope_vars_list = slope_vars,
@@ -1080,7 +1086,8 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                                         algo_extraProj = fixef.algo$extraProj, 
                                         algo_iter_warmup = fixef.algo$iter_warmup, 
                                         algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                                        algo_iter_grandAcc = fixef.algo$iter_grandAcc)
+                                        algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                             demeaner = get0("demeaner", env, ifnotfound = NULL))
 
             iv.mat_demean = iv_vars_demean$X_demean
             iv_lhs_demean = iv_vars_demean$y_demean
@@ -1270,7 +1277,7 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
         slope_flag = get("slope_flag", env)
         slope_vars = get("slope_variables", env)
 
-        vars_demean = cpp_demean(y, X, weights, iterMax = fixef.iter,
+        vars_demean = fixest_demean(y, X, weights, iterMax = fixef.iter,
                                  diffMax = fixef.tol, r_nb_id_Q = fixef_sizes,
                                  fe_id_list = fixef_id_list, table_id_I = fixef_table_vector,
                                  slope_flag_Q = slope_flag, slope_vars_list = slope_vars,
@@ -1278,9 +1285,10 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                                  algo_extraProj = fixef.algo$extraProj, 
                                  algo_iter_warmup = fixef.algo$iter_warmup, 
                                  algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                                 algo_iter_grandAcc = fixef.algo$iter_grandAcc)
+                                 algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                             demeaner = get0("demeaner", env, ifnotfound = NULL))
 
-        iv_vars_demean = cpp_demean(iv_lhs, iv.mat, weights, iterMax = fixef.iter,
+        iv_vars_demean = fixest_demean(iv_lhs, iv.mat, weights, iterMax = fixef.iter,
                                     diffMax = fixef.tol, r_nb_id_Q = fixef_sizes,
                                     fe_id_list = fixef_id_list, table_id_I = fixef_table_vector,
                                     slope_flag_Q = slope_flag, slope_vars_list = slope_vars,
@@ -1288,7 +1296,8 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                                     algo_extraProj = fixef.algo$extraProj, 
                                     algo_iter_warmup = fixef.algo$iter_warmup, 
                                     algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                                    algo_iter_grandAcc = fixef.algo$iter_grandAcc)
+                                    algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                             demeaner = get0("demeaner", env, ifnotfound = NULL))
 
         X_demean = vars_demean$X_demean
         y_demean = vars_demean$y_demean
@@ -1812,7 +1821,7 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
       gc()
     }
 
-    vars_demean = cpp_demean(y, X, weights, iterMax = fixef.iter,
+    vars_demean = fixest_demean(y, X, weights, iterMax = fixef.iter,
                              diffMax = fixef.tol, r_nb_id_Q = fixef_sizes,
                              fe_id_list = fixef_id_list, table_id_I = fixef_table_vector,
                              slope_flag_Q = slope_flag, slope_vars_list = slope_vars,
@@ -1820,7 +1829,8 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                              algo_extraProj = fixef.algo$extraProj, 
                              algo_iter_warmup = fixef.algo$iter_warmup, 
                              algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                             algo_iter_grandAcc = fixef.algo$iter_grandAcc)
+                             algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                             demeaner = get0("demeaner", env, ifnotfound = NULL))
     
     y_demean = vars_demean$y_demean
     if(onlyFixef){
@@ -1870,7 +1880,7 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
           }
         }
       }
-    } else if(any(res$iterations >= fixef.iter)){
+    } else if(is.null(get0("demeaner", env, ifnotfound = NULL)) && any(res$iterations >= fixef.iter)){
       msg = paste0("Demeaning algorithm: Absence of convergence after reaching the maximum number of iterations (", fixef.iter, ").")
 
       res$convStatus = FALSE
@@ -2343,7 +2353,11 @@ feols.fit = function(y, X, fixef_df, vcov, offset, split, fsplit, split.keep, sp
                      fixef.algo = NULL, collin.tol = 1e-9,
                      nthreads = getFixest_nthreads(), lean = FALSE,
                      warn = TRUE, notes = getFixest_notes(), mem.clean = FALSE, verbose = 0,
-                     only.env = FALSE, only.coef = FALSE, env, ...){
+                     only.env = FALSE, only.coef = FALSE, env, demeaner = NULL, ...){
+
+  if(!missing(env) && !is.null(demeaner)){
+    stop("When reusing an environment, set demeaner when creating that environment.")
+  }
 
 
   if(missing(weights)) weights = NULL
@@ -2360,7 +2374,7 @@ feols.fit = function(y, X, fixef_df, vcov, offset, split, fsplit, split.keep, sp
                          cluster = cluster, se = se, ssc = ssc,
                          weights = weights, subset = subset, fixef.rm = fixef.rm,
                          fixef.tol = fixef.tol, fixef.iter = fixef.iter, 
-                         fixef.algo = fixef.algo, collin.tol = collin.tol,
+                         fixef.algo = fixef.algo, demeaner = demeaner, collin.tol = collin.tol,
                          nthreads = nthreads, lean = lean, warn = warn, notes = notes,
                          mem.clean = mem.clean, verbose = verbose, only.coef = only.coef,
                          origin = "feols.fit",
