@@ -65,7 +65,10 @@ library(fixest)
 readLines(system.file("CMG-SOURCE", package = "cmgr"))
 ```
 
-The current build uses CMG `e5613e8` and its default 32-level cap. CMGr is a separately installable R package within the CMG repository.
+The installed `CMG-SOURCE` record identifies the exact source commit used by a
+build. The November 7 monorepo build records `1f577d5`; its numerical CMG code
+is unchanged from `e5613e8` and retains the default 32-level cap. CMGr is a
+separately installable R package within the CMG repository.
 Archived benchmark libraries are historical evidence, not the current installation.
 
 Exactly two categorical intercept fixed effects are supported, including
