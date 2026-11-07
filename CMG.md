@@ -166,7 +166,7 @@ withinr checks run if it is installed.
 
 ## Links
 
-- [Integration proposal](https://github.com/johannes-schmieder/CMG/blob/cmgr-v0.0.3-preview.1/cmgr/PROPOSAL.md)
-- [Benchmark results](https://github.com/johannes-schmieder/CMG/blob/cmgr-v0.0.3-preview.1/cmgr/benchmarks/results/2026-11-07/README.md)
+- [Integration proposal](https://github.com/johannes-schmieder/CMG/blob/main/cmgr/PROPOSAL.md)
+- [Benchmark results](https://github.com/johannes-schmieder/CMG/blob/main/cmgr/benchmarks/results/2026-11-07/README.md)
 - [Minimal patch against #647](https://github.com/johannes-schmieder/fixest-cmg/compare/0752916d36e7376439817712ddf835b662946171...codex/cmg-pr647)
 - [CMG-only part of that patch](https://github.com/johannes-schmieder/fixest-cmg/compare/codex/pr647-interface-fixes...codex/cmg-pr647)
