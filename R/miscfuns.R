@@ -2428,7 +2428,8 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
         stop("This function only works for 'feols' estimations (not for ", X$method, ").")
       }
 
-      if(is.null(demeaner) && !fe_info && !is.null(X$y_demeaned)){
+      if(missing(demeaner) && length(explicit_demeaning_args) == 0L &&
+         !fe_info && !is.null(X$y_demeaned)){
         return(cbind(X$y_demeaned, X$X_demeaned))
       }
 
@@ -2436,8 +2437,16 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
         stop("To apply demeaning, the estimation must contain fixed-effects, this is currently not the case.")
       }
       
+      # Reuse the fitted backend unless the caller explicitly chooses a backend
+      # or supplies native controls. NULL explicitly selects native demeaning.
+      # Tolerances from different solvers are not interchangeable.
+      if(missing(demeaner) && length(explicit_demeaning_args) == 0L){
+        demeaner = X$demeaner
+      }
+      native_fit = is.null(X$demeaner) || inherits(X$demeaner, "fixest_demeaner_map")
+
       # controls for the demeaning algorithm
-      if(!is.null(X$fixef.algo)){
+      if(native_fit && !is.null(X$fixef.algo)){
         if(missnull(fixef.algo)){
           fixef.algo = X$fixef.algo
         }
@@ -2470,8 +2479,8 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
       fml = .xpd(lhs = fml_vars, rhs = fml_fixef)
 
       mc = match.call()
-      if(is.null(demeaner) && !"tol" %in% names(mc)) tol = X$fixef.tol
-      if(is.null(demeaner) && !"iter" %in% names(mc)) iter = X$fixef.iter
+      if(is.null(demeaner) && native_fit && !"tol" %in% names(mc)) tol = X$fixef.tol
+      if(is.null(demeaner) && native_fit && !"iter" %in% names(mc)) iter = X$fixef.iter
 
       weights = X[["weights"]]
 

@@ -96,3 +96,33 @@ for(name in names(controls)){
   }
   cat("Backend contract passed:",name,"\n")
 }
+
+# Saved optional-backend tolerances must not be reinterpreted as MAP controls.
+# This tolerance is valid for CMG but below MapDemeaner's lower bound.
+if(requireNamespace("cmgr", quietly=TRUE)) local({
+  set.seed(9)
+  d <- data.frame(a=rep(1:50,each=6), b=sample(1:8,300,TRUE),
+                  x=rnorm(300), y=rnorm(300))
+  ctl <- CmgDemeaner(fixef_tol=1e-13)
+  fit <- feols(y~x|a+b,d,demeaner=ctl)
+  expected <- demean(fit,demeaner=ctl)
+  stopifnot(identical(demean(fit),expected))
+
+  # Explicit native controls, or an explicit NULL, select the native solver.
+  native <- demean(y+x~a+b,data=d,as.matrix=TRUE)
+  stopifnot(identical(demean(fit,demeaner=NULL),native),
+            identical(demean(fit,iter=2000L),native),
+            identical(demean(fit,tol=1e-6),native),
+            identical(demean(fit,fixef.algo=demeaning_algo()),native))
+
+  # An explicit backend override still wins, with and without cached columns.
+  cached <- feols(y~x|a+b,d,demeaner=ctl,demeaned=TRUE)
+  stopifnot(identical(demean(cached),cbind(cached$y_demeaned,cached$X_demeaned)))
+  cached$y_demeaned[] <- NA_real_
+  cached$X_demeaned[] <- NA_real_
+  stopifnot(identical(demean(cached,demeaner=ctl),expected),
+            identical(demean(cached,demeaner=NULL),native),
+            identical(demean(cached,tol=1e-6),native))
+  fails(demean(fit,demeaner=ctl,tol=1e-6),"do not also provide")
+  cat("Saved backend and explicit override tests passed\n")
+})
