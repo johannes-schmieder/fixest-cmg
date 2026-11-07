@@ -44,6 +44,17 @@ local({
 })
 
 controls <- list(map=map_tight)
+if(requireNamespace("cmgr",quietly=TRUE)){
+  controls$cmg <- CmgDemeaner(fixef_tol=1e-10,fixef_maxiter=10000L,schur=FALSE)
+  controls$schur <- CmgDemeaner(fixef_tol=1e-10,fixef_maxiter=10000L,schur=TRUE)
+  stopifnot(identical(controls$schur,CmgDemeaner(tol=1e-10,maxiter=10000L)),
+            identical(controls$cmg,CmgDemeaner(tol=1e-10,maxiter=10000L,schur=FALSE)))
+  fails(CmgDemeaner(fixef_tol=1e-8,tol=1e-8))
+  fails(CmgDemeaner(fixef_maxiter=100,maxiter=100))
+  fails(feols(y~x|a,d,demeaner=controls$cmg),"exactly two")
+  fails(feols(y~x|a+b+c,d,demeaner=controls$cmg),"exactly two")
+  fails(feols(y~x|a[z]+b,d,demeaner=controls$cmg),"exactly two")
+}
 if(requireNamespace("withinr",quietly=TRUE)){
   controls$withinr <- LsmrDemeaner(fixef_atol=1e-10,fixef_btol=1e-10,
                                   fixef_maxiter=10000L,preconditioner="additive")
@@ -93,6 +104,36 @@ if(requireNamespace("withinr", quietly=TRUE)) local({
   d <- data.frame(a=rep(1:50,each=6), b=sample(1:8,300,TRUE),
                   x=rnorm(300), y=rnorm(300))
   ctl <- LsmrDemeaner(fixef_atol=1e-13, fixef_btol=1e-13)
+  fit <- feols(y~x|a+b,d,demeaner=ctl)
+  expected <- demean(fit,demeaner=ctl)
+  stopifnot(identical(demean(fit),expected))
+
+  # Explicit native controls, or an explicit NULL, select the native solver.
+  native <- demean(y+x~a+b,data=d,as.matrix=TRUE)
+  stopifnot(identical(demean(fit,demeaner=NULL),native),
+            identical(demean(fit,iter=2000L),native),
+            identical(demean(fit,tol=1e-6),native),
+            identical(demean(fit,fixef.algo=demeaning_algo()),native))
+
+  # An explicit backend override still wins, with and without cached columns.
+  cached <- feols(y~x|a+b,d,demeaner=ctl,demeaned=TRUE)
+  stopifnot(identical(demean(cached),cbind(cached$y_demeaned,cached$X_demeaned)))
+  cached$y_demeaned[] <- NA_real_
+  cached$X_demeaned[] <- NA_real_
+  stopifnot(identical(demean(cached,demeaner=ctl),expected),
+            identical(demean(cached,demeaner=NULL),native),
+            identical(demean(cached,tol=1e-6),native))
+  fails(demean(fit,demeaner=ctl,tol=1e-6),"do not also provide")
+  cat("Saved backend and explicit override tests passed\n")
+})
+
+# Saved optional-backend tolerances must not be reinterpreted as MAP controls.
+# This tolerance is valid for CMG but below MapDemeaner's lower bound.
+if(requireNamespace("cmgr", quietly=TRUE)) local({
+  set.seed(9)
+  d <- data.frame(a=rep(1:50,each=6), b=sample(1:8,300,TRUE),
+                  x=rnorm(300), y=rnorm(300))
+  ctl <- CmgDemeaner(fixef_tol=1e-13)
   fit <- feols(y~x|a+b,d,demeaner=ctl)
   expected <- demean(fit,demeaner=ctl)
   stopifnot(identical(demean(fit),expected))

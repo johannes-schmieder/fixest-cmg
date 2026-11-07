@@ -102,10 +102,10 @@ fixest_check_demeaner = function(demeaner){
   }
 
   if(!inherits(demeaner, "fixest_demeaner") ||
-     !any(vapply(c("fixest_demeaner_map", "fixest_demeaner_lsmr"),
+     !any(vapply(c("fixest_demeaner_map", "fixest_demeaner_lsmr", "fixest_demeaner_cmg"),
                  function(cl) inherits(demeaner, cl), logical(1)))){
-    stop("Argument `demeaner` must be NULL or created by MapDemeaner() ",
-         "or LsmrDemeaner().")
+    stop("Argument `demeaner` must be NULL or created by MapDemeaner(), ",
+         "LsmrDemeaner() or CmgDemeaner().")
   }
 
   invisible(NULL)
@@ -118,7 +118,7 @@ fixest_resolve_demeaner = function(demeaner, fixef.tol, fixef.iter, fixef.algo,
     pblm = paste0("`", explicit_demeaning_args, "`", collapse = ", ")
     stop("When `demeaner` is provided, do not also provide ",
          pblm, ". ",
-         "Put these controls inside MapDemeaner() or LsmrDemeaner().")
+         "Put these controls inside MapDemeaner(), LsmrDemeaner() or CmgDemeaner().")
   }
 
   if(is.null(fixef.algo)){
@@ -137,7 +137,13 @@ fixest_resolve_demeaner = function(demeaner, fixef.tol, fixef.iter, fixef.algo,
   } else {
     fixest_check_demeaner(demeaner)
     # Revalidate modified or serialized configurations.
-    if(inherits(demeaner, "fixest_demeaner_lsmr")){
+    if(inherits(demeaner, "fixest_demeaner_cmg")){
+      demeaner = CmgDemeaner(
+        fixef_tol = if(is.null(demeaner$fixef_tol)) demeaner$tol else demeaner$fixef_tol,
+        fixef_maxiter = if(is.null(demeaner$fixef_maxiter)) demeaner$maxiter else demeaner$fixef_maxiter,
+        schur = if(is.null(demeaner$schur)) TRUE else demeaner$schur
+      )
+    } else if(inherits(demeaner, "fixest_demeaner_lsmr")){
       demeaner = do.call(LsmrDemeaner, unclass(demeaner))
     } else {
       algo = demeaner$fixef.algo

@@ -3078,6 +3078,10 @@ fixest_env = function(fml, data, family = c("poisson", "negbin", "logit", "gauss
   # we always assign the controls for the demeaning algorithm
   # => because in multiple FE estimations, isFixef  = FALSE
   # In any case there is no extra burden
+  if(inherits(demeaner, "fixest_demeaner_cmg") &&
+     (multi_fixef || !isFixef || isSlope || length(fixef_vars) != 2L)){
+    stop("CMG currently requires exactly two categorical intercept fixed effects and a fixed FE specification.")
+  }
   assign("fixef.algo", fixef.algo, env)
   assign("demeaner", demeaner, env)
 

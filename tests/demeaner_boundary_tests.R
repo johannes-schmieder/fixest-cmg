@@ -48,7 +48,10 @@ controls <- list(map=MapDemeaner(fixef_tol=1e-10))
 if(requireNamespace("withinr",quietly=TRUE)){
   controls$withinr <- LsmrDemeaner(fixef_atol=1e-10,fixef_btol=1e-10)
 }
-
+if(requireNamespace("cmgr",quietly=TRUE)){
+  controls$cmg <- CmgDemeaner(fixef_tol=1e-10,schur=FALSE)
+  controls$schur <- CmgDemeaner(fixef_tol=1e-10)
+}
 f <- list(small$a,small$b)
 for(name in names(controls)){
   ctl <- controls[[name]]
@@ -68,3 +71,22 @@ for(name in names(controls)){
   }
   cat("Input/control boundary passed:",name,"\n")
 }
+
+# IV diagnostics retain their native residualization. Auxiliary regressions
+# on already residualized variables must not inherit a global backend choice.
+if(requireNamespace("cmgr",quietly=TRUE)) local({
+  old <- options("fixest_estimation"); on.exit(options(old))
+  setFixest_estimation(reset=TRUE)
+  ctl <- CmgDemeaner()
+  fit <- feols(y~x|a+b|endog~z,d,demeaner=ctl)
+  plain <- feols(y~x|endog~z,d)
+  reference <- fitstat(fit,~kpr+cd)
+  plain_reference <- fitstat(plain,~kpr+cd)
+  setFixest_estimation(demeaner=ctl)
+  global <- feols(y~x|a+b|endog~z,d)
+  stopifnot(identical(coef(fit),coef(global)),
+            identical(fitstat(global,~kpr+cd),reference),
+            identical(fitstat(fit,~kpr+cd),reference),
+            identical(fitstat(plain,~kpr+cd),plain_reference))
+  cat("Global CMG and native IV diagnostic regressions passed\n")
+})

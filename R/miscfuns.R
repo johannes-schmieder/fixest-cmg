@@ -3505,8 +3505,9 @@ fixest_demean = function(y, X_raw, r_weights, iterMax, diffMax, r_nb_id_Q,
 
   fixest_check_demeaner(demeaner)
 
-  # For one-way fixed effects, always use the cpp_demean backend.
-  if(is.null(demeaner) || inherits(demeaner, "fixest_demeaner_map") || length(r_nb_id_Q) == 1){
+  # LSMR retains native demeaning for one-way fixed effects.
+  if(is.null(demeaner) || inherits(demeaner, "fixest_demeaner_map") ||
+     (inherits(demeaner, "fixest_demeaner_lsmr") && length(r_nb_id_Q) == 1L)){
     return(call_cpp_demean())
   }
 
@@ -3516,6 +3517,19 @@ fixest_demean = function(y, X_raw, r_weights, iterMax, diffMax, r_nb_id_Q,
     X_raw = do.call(cbind, X_raw)
   } else if(is.numeric(X_raw) && is.null(dim(X_raw)) && length(X_raw) > 1L){
     X_raw = matrix(X_raw, ncol = 1L)
+  }
+
+  if(inherits(demeaner, "fixest_demeaner_cmg")){
+    if(length(r_nb_id_Q) != 2L || any(slope_flag_Q != 0L)){
+      stop("CMG currently requires exactly two categorical intercept fixed effects.")
+    }
+    # fixest uses scalar one as its FE-only X sentinel.
+    if(length(X_raw) == 1L) X_raw = 0
+    if(!is.list(y) && length(y) == 1L) y = 0
+    return(cmgr::demean_fixest(y, X_raw, fe_id_list, r_nb_id_Q,
+              weights = if(length(r_weights) == 1L) NULL else r_weights,
+              tol = demeaner$fixef_tol, maxiter = demeaner$fixef_maxiter,
+              nthreads = nthreads, schur = demeaner$schur))
   }
 
   if(!fixest_withinr_supports_lsmr_options()){
@@ -7668,7 +7682,7 @@ setFixest_estimation = function(data = NULL, panel.id = NULL, fixef.rm = "perfec
     pblm = paste0("`", pblm, "`", collapse = ", ")
     stop("When `demeaner` is provided, do not also provide ",
          pblm, ". ",
-         "Put these controls inside MapDemeaner() or LsmrDemeaner().")
+         "Put these controls inside MapDemeaner(), LsmrDemeaner() or CmgDemeaner().")
   }
   check_arg(fixef.tol, collin.tol, glm.tol, "numeric scalar GT{0}")
   check_arg(fixef.iter, glm.iter, "integer scalar GE{1}")
