@@ -20,3 +20,4 @@
 ^_quarto$
 
 ^\.git$
+^src/Makevars$
