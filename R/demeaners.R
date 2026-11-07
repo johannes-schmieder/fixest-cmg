@@ -49,6 +49,11 @@ LsmrDemeaner = function(fixef_atol = 1e-6, fixef_btol = 1e-6,
                         fixef_maxiter = 10000, preconditioner = "auto",
                         local_size = NULL){
 
+  if(!fixest_withinr_supports_lsmr_options()){
+    stop("LsmrDemeaner() requires the optional 'withinr' package with ",
+         "LsmrOptions() and within_solve_batch() or solve_batch().")
+  }
+
   check_arg(fixef_atol, fixef_btol, "numeric scalar GT{0}")
   check_arg(fixef_maxiter, "integer scalar GE{1}")
 
@@ -96,7 +101,9 @@ fixest_check_demeaner = function(demeaner){
     return(invisible(NULL))
   }
 
-  if(!inherits(demeaner, "fixest_demeaner")){
+  if(!inherits(demeaner, "fixest_demeaner") ||
+     !any(vapply(c("fixest_demeaner_map", "fixest_demeaner_lsmr"),
+                 function(cl) inherits(demeaner, cl), logical(1)))){
     stop("Argument `demeaner` must be NULL or created by MapDemeaner() ",
          "or LsmrDemeaner().")
   }
@@ -129,6 +136,15 @@ fixest_resolve_demeaner = function(demeaner, fixef.tol, fixef.iter, fixef.algo,
     )
   } else {
     fixest_check_demeaner(demeaner)
+    # Revalidate modified or serialized configurations.
+    if(inherits(demeaner, "fixest_demeaner_lsmr")){
+      demeaner = do.call(LsmrDemeaner, unclass(demeaner))
+    } else {
+      algo = demeaner$fixef.algo
+      demeaner = MapDemeaner(demeaner$fixef_tol, demeaner$fixef_maxiter,
+                            algo$extraProj, algo$iter_warmup,
+                            algo$iter_projAfterAcc, algo$iter_grandAcc)
+    }
   }
 
   demeaner
@@ -181,7 +197,8 @@ fixest_lsmr_preconditioner_arg = function(demeaner){
 
 fixest_withinr_supports_lsmr_options = function(){
   requireNamespace("withinr", quietly = TRUE) &&
-    exists("LsmrOptions", envir = asNamespace("withinr"), inherits = FALSE)
+    "LsmrOptions" %in% getNamespaceExports("withinr") &&
+    any(c("within_solve_batch", "solve_batch") %in% getNamespaceExports("withinr"))
 }
 
 #' @export

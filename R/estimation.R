@@ -518,6 +518,13 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                  fixef.keep_names = NULL, demeaned = FALSE, mem.clean = FALSE, 
                  only.env = FALSE, env, ...){
 
+  reuse_env = !missing(env)
+  explicit_native_controls = intersect(c("fixef.tol", "fixef.iter", "fixef.algo"),
+                                       names(match.call()))
+  if(reuse_env && !is.null(demeaner)){
+    stop("When reusing an environment, set demeaner when creating that environment.")
+  }
+
   dots = list(...)
 
   # 1st: is the call coming from feglm?
@@ -640,6 +647,23 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
   }
 
   isFixef = get("isFixef", env)
+  if(!fromGLM){
+    # Constructor controls and internal split/multiple-model calls use the
+    # prepared environment. Explicit native controls on environment reuse
+    # retain their usual precedence. GLM supplies per-iteration tolerances.
+    env_demeaner = get0("demeaner", env, ifnotfound = NULL)
+    if(reuse_env && length(explicit_native_controls) > 0L &&
+       !is.null(env_demeaner) && !inherits(env_demeaner, "fixest_demeaner_map")){
+      stop("When reusing an optional-backend environment, set demeaning controls ",
+           "in its constructor when creating that environment.")
+    }
+    if(!reuse_env || !"fixef.tol" %in% explicit_native_controls){
+      fixef.tol = get("fixef.tol", env)
+    }
+    if(!reuse_env || !"fixef.iter" %in% explicit_native_controls){
+      fixef.iter = get("fixef.iter", env)
+    }
+  }
 
   # Used to solve with the reduced model
   xwx = dots$xwx
@@ -1861,7 +1885,8 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
           }
         }
       }
-    } else if(any(res$iterations >= fixef.iter)){
+    } else if((is.null(demeaner) || inherits(demeaner, "fixest_demeaner_map")) &&
+              any(res$iterations >= fixef.iter)){
       msg = paste0("Demeaning algorithm: Absence of convergence after reaching the maximum number of iterations (", fixef.iter, ").")
 
       res$convStatus = FALSE
@@ -2335,6 +2360,10 @@ feols.fit = function(y, X, fixef_df, vcov, offset, split, fsplit, split.keep, sp
                      nthreads = getFixest_nthreads(), lean = FALSE,
                      warn = TRUE, notes = getFixest_notes(), mem.clean = FALSE, verbose = 0,
                      only.env = FALSE, only.coef = FALSE, env, ...){
+
+  if(!missing(env) && !is.null(demeaner)){
+    stop("When reusing an environment, set demeaner when creating that environment.")
+  }
 
 
   if(missing(weights)) weights = NULL

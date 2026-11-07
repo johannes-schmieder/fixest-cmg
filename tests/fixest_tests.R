@@ -2136,21 +2136,21 @@ test(base_new$ln_euros, b$y_demeaned)
 test(base_new$ln_dist, b$X_demeaned)
 
 map_dm = MapDemeaner(fixef_tol = 1e-7, fixef_maxiter = 2000)
-lsmr_dm = LsmrDemeaner(fixef_atol = 1e-7, fixef_btol = 1e-7,
-                       fixef_maxiter = 2000, preconditioner = "diagonal",
-                       local_size = 2)
-
 test(inherits(map_dm, "fixest_demeaner_map"), TRUE)
-test(inherits(lsmr_dm, "fixest_demeaner_lsmr"), TRUE)
-test(LsmrDemeaner(preconditioner = 1), "err")
 test(feols(ln_euros ~ ln_dist | Origin + Destination, base,
            demeaner = map_dm, fixef.tol = 1e-8), "err")
 
-one_fe_map = feols(ln_euros ~ ln_dist | Origin, base, demeaner = map_dm)
-one_fe_lsmr = feols(ln_euros ~ ln_dist | Origin, base, demeaner = lsmr_dm)
-test(coef(one_fe_map), coef(one_fe_lsmr), "~", 1e-12)
-
 if(fixest:::fixest_withinr_supports_lsmr_options()){
+  lsmr_dm = LsmrDemeaner(fixef_atol = 1e-7, fixef_btol = 1e-7,
+                         fixef_maxiter = 2000, preconditioner = "diagonal",
+                         local_size = 2)
+  test(inherits(lsmr_dm, "fixest_demeaner_lsmr"), TRUE)
+  test(LsmrDemeaner(preconditioner = 1), "err")
+
+  one_fe_map = feols(ln_euros ~ ln_dist | Origin, base, demeaner = map_dm)
+  one_fe_lsmr = feols(ln_euros ~ ln_dist | Origin, base, demeaner = lsmr_dm)
+  test(coef(one_fe_map), coef(one_fe_lsmr), "~", 1e-12)
+
   b_lsmr = feols(ln_euros ~ ln_dist | Origin + Destination, base,
                  demeaner = LsmrDemeaner(fixef_atol = 1e-8, fixef_btol = 1e-8,
                                          preconditioner = "off"))

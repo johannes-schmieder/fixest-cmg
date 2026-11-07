@@ -2428,7 +2428,8 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
         stop("This function only works for 'feols' estimations (not for ", X$method, ").")
       }
 
-      if(!fe_info && !is.null(X$y_demeaned)){
+      if(missing(demeaner) && length(explicit_demeaning_args) == 0L &&
+         !fe_info && !is.null(X$y_demeaned)){
         return(cbind(X$y_demeaned, X$X_demeaned))
       }
 
@@ -2436,8 +2437,16 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
         stop("To apply demeaning, the estimation must contain fixed-effects, this is currently not the case.")
       }
       
+      # Reuse the fitted backend unless the caller explicitly chooses a backend
+      # or supplies native controls. NULL explicitly selects native demeaning.
+      # Tolerances from different solvers are not interchangeable.
+      if(missing(demeaner) && length(explicit_demeaning_args) == 0L){
+        demeaner = X$demeaner
+      }
+      native_fit = is.null(X$demeaner) || inherits(X$demeaner, "fixest_demeaner_map")
+
       # controls for the demeaning algorithm
-      if(!is.null(X$fixef.algo)){
+      if(native_fit && !is.null(X$fixef.algo)){
         if(missnull(fixef.algo)){
           fixef.algo = X$fixef.algo
         }
@@ -2470,8 +2479,8 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
       fml = .xpd(lhs = fml_vars, rhs = fml_fixef)
 
       mc = match.call()
-      if(!"tol" %in% names(mc)) tol = X$fixef.tol
-      if(!"iter" %in% names(mc)) iter = X$fixef.iter
+      if(is.null(demeaner) && native_fit && !"tol" %in% names(mc)) tol = X$fixef.tol
+      if(is.null(demeaner) && native_fit && !"iter" %in% names(mc)) iter = X$fixef.iter
 
       weights = X[["weights"]]
 
@@ -2735,11 +2744,16 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
     }
   }
 
-  demeaner = fixest_resolve_demeaner(demeaner, tol, iter, fixef.algo,
-                                     explicit_demeaning_args)
-  tol = fixest_demeaner_tol(demeaner)
-  iter = fixest_demeaner_iter(demeaner)
-  fixef.algo = fixest_demeaner_algo(demeaner)
+  # Native demean() accepts every positive tolerance and its trusted-input path
+  # deliberately skips validation. Explicit backend constructors have their
+  # own control contract.
+  if(!is.null(demeaner)){
+    demeaner = fixest_resolve_demeaner(demeaner, tol, iter, fixef.algo,
+                                       explicit_demeaning_args)
+    tol = fixest_demeaner_tol(demeaner)
+    iter = fixest_demeaner_iter(demeaner)
+    fixef.algo = fixest_demeaner_algo(demeaner)
+  }
 
   #
   # Unclassing fes
@@ -3496,6 +3510,14 @@ fixest_demean = function(y, X_raw, r_weights, iterMax, diffMax, r_nb_id_Q,
     return(call_cpp_demean())
   }
 
+  # Native demeaning accepts lists and bare vectors as X. Optional backends
+  # require an observation-by-column matrix; preserve scalar sentinels.
+  if(is.list(X_raw)){
+    X_raw = do.call(cbind, X_raw)
+  } else if(is.numeric(X_raw) && is.null(dim(X_raw)) && length(X_raw) > 1L){
+    X_raw = matrix(X_raw, ncol = 1L)
+  }
+
   if(!fixest_withinr_supports_lsmr_options()){
     stop("Using LsmrDemeaner() requires a current 'withinr' with LsmrOptions(). ",
          "Install the current withinr R bindings and try again.")
@@ -3526,12 +3548,15 @@ fixest_demean = function(y, X_raw, r_weights, iterMax, diffMax, r_nb_id_Q,
   )
   preconditioner = fixest_lsmr_preconditioner_arg(demeaner)
 
-  result = withinr::solve_batch(categories, Y, options = options, weights = w,
-                                preconditioner = preconditioner)
+  # New R bindings renamed solve_batch to within_solve_batch.
+  entry = if("within_solve_batch" %in% getNamespaceExports("withinr"))
+    "within_solve_batch" else "solve_batch"
+  result = getExportedValue("withinr", entry)(
+    categories, Y, options = options, weights = w, preconditioner = preconditioner)
 
   if(!all(result$converged)){
-    warning("withinr::solve_batch did not converge for all variables. ",
-            "Consider increasing fixef_maxiter or using MapDemeaner().")
+    stop("withinr did not converge for all variables. Increase fixef_maxiter ",
+         "or use MapDemeaner().")
   }
 
   dm = result$demeaned
@@ -7638,7 +7663,7 @@ setFixest_estimation = function(data = NULL, panel.id = NULL, fixef.rm = "perfec
 
   check_set_arg(fixef.rm, "match(singletons, infinite_coef, perfect_fit, none)")
   fixest_check_demeaner(demeaner)
-  if("demeaner" %in% args_default && any(c("fixef.tol", "fixef.iter") %in% args_default)){
+  if(!is.null(demeaner) && any(c("fixef.tol", "fixef.iter") %in% args_default)){
     pblm = intersect(c("fixef.tol", "fixef.iter"), args_default)
     pblm = paste0("`", pblm, "`", collapse = ", ")
     stop("When `demeaner` is provided, do not also provide ",

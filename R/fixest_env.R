@@ -98,6 +98,10 @@ fixest_env = function(fml, data, family = c("poisson", "negbin", "logit", "gauss
   args = names(mc_origin)
   args = args[nchar(args) > 0]
 
+  if(origin_type != "feols" && (!is.null(demeaner) || "demeaner" %in% args)){
+    stop("Optional demeaning backends currently support OLS only.")
+  }
+
   # Checking the args
   valid_args = switch(origin,
                       feols = c(common_args, feols_args),
@@ -2864,7 +2868,9 @@ fixest_env = function(fml, data, family = c("poisson", "negbin", "logit", "gauss
 
   # The main precision
 
-  check_value(fixef.tol, "numeric scalar GT{(10000*.Machine$double.eps)}")
+  if(is.null(demeaner) || inherits(demeaner, "fixest_demeaner_map")){
+    check_value(fixef.tol, "numeric scalar GT{(10000*.Machine$double.eps)}")
+  }
   check_arg(fixef.iter, "integer scalar GE{1}")
 
   if(origin_type == "feNmlm"){

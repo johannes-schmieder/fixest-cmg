@@ -2056,13 +2056,13 @@ proj_on_U = function(x, Z){
     }
 
     if(is_U){
-      Z_proj = resid(feols.fit(Z_dm, U_dm))
+      Z_proj = resid(feols.fit(Z_dm, U_dm, demeaner = NULL))
     } else {
       Z_proj = Z_dm
     }
 
   } else if(is_U){
-    Z_proj = resid(feols.fit(Z, U))
+    Z_proj = resid(feols.fit(Z, U, demeaner = NULL))
   } else {
     Z_proj = Z
   }
