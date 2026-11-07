@@ -56,8 +56,10 @@
 #' function [`demeaning_algo`]. Be aware that there is no clear guidance on how to change the 
 #' settings, it's more a matter of try-and-see.
 #' @param demeaner `NULL` (default) or a demeaning backend object created by
-#' [`MapDemeaner`] or [`LsmrDemeaner`]. If `NULL`, the native MAP backend is
-#' used with `fixef.tol`, `fixef.iter`, and `fixef.algo`.
+#' [`MapDemeaner`], [`LsmrDemeaner`] or [`CmgDemeaner`]. If `NULL`, the native MAP backend is
+#' used with `fixef.tol`, `fixef.iter`, and `fixef.algo`. Put an optional backend's
+#' controls in its constructor, and prefer selecting it per call. With `only.env = TRUE`,
+#' set the backend when creating the environment and do not supply it on reuse.
 #'
 #' @details
 #' The method used to demean each variable along the fixed-effects is based on Berge (2018), since 

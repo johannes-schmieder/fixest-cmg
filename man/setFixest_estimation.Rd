@@ -118,8 +118,8 @@ code to avoid memory issues.}
 \item{glm.tol}{Tolerance level for the glm algorithm. Default is \code{1e-8}.}
 
 \item{demeaner}{\code{NULL} (default) or a demeaning backend object created by
-\code{\link{MapDemeaner}} or \code{\link{LsmrDemeaner}}. If \code{NULL}, the native MAP backend is
-used with \code{fixef.tol} and \code{fixef.iter}.}
+\code{\link{MapDemeaner}}, \code{\link{LsmrDemeaner}} or \code{\link{CmgDemeaner}}. If \code{NULL}, the native MAP backend is
+used with \code{fixef.tol} and \code{fixef.iter}. See the section on demeaning backends.}
 
 \item{data.save}{Logical scalar, default is \code{FALSE}. If \code{TRUE}, the data used for
 the estimation is saved within the returned object. Hence later calls to predict(),
@@ -129,6 +129,9 @@ This is especially useful for estimations within loops, where the data changes
 at each iteration, such that postprocessing can be done outside the loop without issue.}
 
 \item{reset}{Logical scalar, default is \code{FALSE}. Whether to reset all values.}
+}
+\section{Demeaning backends}{
+A \code{demeaner} set here applies to every \code{feols} call. Selecting an optional backend per call is recommended. In particular, a global \code{\link{CmgDemeaner}} makes ordinary calls without exactly two categorical intercept effects fail by design, with no fallback. A \code{demeaner} cannot be set together with \code{fixef.tol} or \code{fixef.iter} in the same call. It does not change the inner loop of GLM estimations. Use \code{reset = TRUE} to clear it.
 }
 \value{
 The function \code{getFixest_estimation} returns the currently set global defaults.

@@ -89,8 +89,8 @@ function \code{\link{demeaning_algo}}. Be aware that there is no clear guidance 
 settings, it's more a matter of try-and-see.}
 
 \item{demeaner}{\code{NULL} (default) or a demeaning backend object created by
-\code{\link{MapDemeaner}} or \code{\link{LsmrDemeaner}}. If \code{NULL}, the native MAP backend is
-used with \code{tol}, \code{iter}, and \code{fixef.algo}.}
+\code{\link{MapDemeaner}}, \code{\link{LsmrDemeaner}} or \code{\link{CmgDemeaner}}. If \code{NULL}, the native MAP backend is
+used with \code{tol}, \code{iter}, and \code{fixef.algo}. For a saved fit, see the section on saved fits and demeaning backends.}
 
 \item{na.rm}{Logical, default is \code{TRUE}. If \code{TRUE} and the input data contains any NA value,
 then any observation with NA will be discarded leading to an output with less observations than
@@ -109,6 +109,17 @@ element MUST be consistent. Non compliance to these rules may simply lead your R
 break.}
 
 \item{...}{Not currently used.}
+}
+\section{Saved fits and demeaning backends}{
+When \code{X} is a \code{feols} fit:
+\itemize{
+\item With no backend and no native controls, the saved demeaned columns are returned if the fit has them; otherwise the columns are recomputed with the fit's own backend.
+\item \code{demeaner = ctl} recomputes with \code{ctl}.
+\item \code{demeaner = NULL} recomputes with the native backend.
+\item Explicit \code{tol}, \code{iter} or \code{fixef.algo}, with no backend, recomputes with the native backend. On a fit from an optional backend, native controls you omit take their native defaults; the optional backend's tolerance is never copied.
+\item Supplying a non-NULL \code{demeaner} together with native controls is an error.
+}
+For other input, optional backends accept bare vectors and data frames, including with \code{as.matrix = TRUE}. Native demeaning without an explicit backend keeps its usual validation.
 }
 \value{
 It returns a data.frame of the same number of columns as the number of variables to be centered.

@@ -1,3 +1,7 @@
+> **[Experimental two-way CMG backend for fixest](CMG.md)**
+>
+> **Status: experimental proposal.** This is not upstream fixest.
+
 
 # fixest: fast and user-friendly econometric estimations
 

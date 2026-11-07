@@ -253,8 +253,10 @@ function \code{\link{demeaning_algo}}. Be aware that there is no clear guidance 
 settings, it's more a matter of try-and-see.}
 
 \item{demeaner}{\code{NULL} (default) or a demeaning backend object created by
-\code{\link{MapDemeaner}} or \code{\link{LsmrDemeaner}}. If \code{NULL}, the native MAP backend is
-used with \code{fixef.tol}, \code{fixef.iter}, and \code{fixef.algo}.}
+\code{\link{MapDemeaner}}, \code{\link{LsmrDemeaner}} or \code{\link{CmgDemeaner}}. If \code{NULL}, the native MAP backend is
+used with \code{fixef.tol}, \code{fixef.iter}, and \code{fixef.algo}. Put an optional backend's
+controls in its constructor, and prefer selecting it per call. With \code{only.env = TRUE},
+set the backend when creating the environment and do not supply it on reuse.}
 
 \item{collin.tol}{Numeric scalar, default is \code{1e-9}. Threshold deciding when variables should
 be considered collinear and subsequently removed from the estimation. Higher values means more
