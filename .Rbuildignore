@@ -18,3 +18,5 @@
 ^_
 ^altdoc$
 ^_quarto$
+
+^\.git$
