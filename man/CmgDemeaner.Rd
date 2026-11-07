@@ -1,11 +1,13 @@
 \name{CmgDemeaner}
 \alias{CmgDemeaner}
 \title{Configure the optional two-way CMG backend}
-\usage{CmgDemeaner(tol = 1e-8, maxiter = 10000L, schur = FALSE)}
+\usage{CmgDemeaner(fixef_tol = 1e-8, fixef_maxiter = 10000L, schur = FALSE,
+  tol = NULL, maxiter = NULL)}
 \arguments{
 \item{schur}{Enable exact low-degree Schur elimination. Defaults to FALSE, preserving the full CMG graph.}
-\item{tol}{Relative weighted fixed-effect moment tolerance.}
-\item{maxiter}{Maximum PCG iterations per residualized column.}
+\item{fixef_tol}{Relative weighted fixed-effect moment tolerance.}
+\item{fixef_maxiter}{Maximum PCG iterations per residualized column.}
+\item{tol,maxiter}{Compatibility aliases. Do not supply an alias and its corresponding canonical argument together.}
 }
 \description{Configure explicit CMG residualization for two categorical intercept
 fixed effects in OLS or \code{demean()}. Requires the optional experimental cmgr

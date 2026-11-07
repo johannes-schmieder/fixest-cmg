@@ -2,13 +2,15 @@
 
 This branch adds an optional `cmgr` backend at the existing fixed-effect
 residualization boundary. It is based on upstream fixest `cf946133` (0.14.2).
-It is an independent local implementation; fixest PR #647 remains the place
-to coordinate a general backend interface.
+Its constructors and explicit dispatcher follow fixest PR #647 (head 0752916).
+The proposal remains a draft; this branch adds CMG as a third backend case.
+It also forwards resolved MAP controls from the prepared environment to the
+native solver, so constructor settings apply to actual OLS solves.
 
 ```r
 library(fixest)
 fit <- feols(y ~ x1 + x2 | worker + firm, data,
-             demeaner = CmgDemeaner(tol = 1e-8), nthreads = 4)
+             demeaner = CmgDemeaner(fixef_tol = 1e-8), nthreads = 4)
 ```
 
 
@@ -42,7 +44,7 @@ does not create a Schur-without-CMG solver. Native fixest remains a third
 comparison with its own, numerically different convergence criterion.
 
 Install the companion `cmgr` source package first. The local sources are
-`/Users/johannes/Git/cmgr` and `/Users/johannes/Git/fixest-cmg`. Build and use
+`/Users/johannes/Git/CMG/cmgr` and `/Users/johannes/Git/fixest-cmg`. Build and use
 an isolated R library. The current local installation is at
 `~/research/fereg/fixest-cmg-current/library`. Reinstall after changing cmgr's
 source or bundled CMG revision; updating a Git checkout does not update R's
@@ -50,7 +52,7 @@ installed package.
 
 ```sh
 mkdir -p "$HOME/research/fereg/fixest-cmg-current/library"
-R CMD INSTALL --library="$HOME/research/fereg/fixest-cmg-current/library" /Users/johannes/Git/cmgr
+R CMD INSTALL --library="$HOME/research/fereg/fixest-cmg-current/library" /Users/johannes/Git/CMG/cmgr
 R_LIBS_USER="$HOME/research/fereg/fixest-cmg-current/library" R CMD INSTALL \
   --library="$HOME/research/fereg/fixest-cmg-current/library" /Users/johannes/Git/fixest-cmg
 ```
@@ -63,9 +65,8 @@ library(fixest)
 readLines(system.file("CMG-SOURCE", package = "cmgr"))
 ```
 
-The current build uses CMG `e5613e8` and its default 32-level cap. The dated
-`fixest-cmg-20261106/implementation` and `main-review-20261107` libraries preserve
-previous experiments; they are not the current installation.
+The current build uses CMG `e5613e8` and its default 32-level cap. CMGr is a separately installable R package within the CMG repository.
+Archived benchmark libraries are historical evidence, not the current installation.
 
 Exactly two categorical intercept fixed effects are supported, including
 weighted OLS, FE-only, IV, multiple outcomes, stepwise regressors, split samples,
@@ -89,3 +90,37 @@ checks. The companion package contains independent dense-QR projection checks.
 The experiment directory retains timing scripts, numerical comparisons, an
 interrupt test, and default-path comparisons against pristine upstream.
 The current platform evidence is Apple Silicon macOS, not release qualification.
+
+## Shared backend interface and withinr
+
+```r
+native <- feols(y ~ x | worker + firm, data, demeaner = MapDemeaner())
+lsmr <- feols(y ~ x | worker + firm, data,
+              demeaner = LsmrDemeaner(fixef_atol = 1e-8, fixef_btol = 1e-8,
+                                      preconditioner = "additive"))
+cmg <- feols(y ~ x | worker + firm, data,
+             demeaner = CmgDemeaner(fixef_tol = 1e-8, schur = TRUE))
+```
+
+`fixef_maxiter` sets the iteration cap for all three constructors. CMG's former
+`tol` and `maxiter` names remain compatibility aliases; an alias and its canonical
+name cannot be supplied together. Older serialized CMG configurations are
+normalized when used. Native tolerance/acceleration arguments cannot accompany
+any non-NULL `demeaner`. `setFixest_estimation(demeaner = ...)` accepts the same
+objects. Constructors for optional backends report missing packages immediately.
+
+PR #647 supplies an explicit MAP/LSMR dispatcher, not a generic plugin registry.
+Installing CMGr alone therefore does not add CMG support to that PR: a thin
+constructor, configuration handling and a CMG dispatcher case are still needed.
+The withinr adapter accepts both the older `solve_batch()` entry point and
+`within_solve_batch()` from within PR #84. Nonconvergence is an error, including
+in multiple-model fits; it is not silently accepted as a completed projection.
+
+Withinr uses a process-wide Rayon pool and has no per-call thread argument in
+these bindings. Set `RAYON_NUM_THREADS` before starting R for reproducible
+comparisons. `nthreads` controls native fixest and CMGr work but does not resize
+withinr's pool. Withinr's one-way case uses native demeaning, as in #647.
+
+Run `tests/demeaner_tests.R` for the common interface and independent weighted-QR
+checks, including withinr when installed; run `tests/cmg_tests.R` for the broader
+CMG on/off integration checks. The native C++ demeaning implementation is unchanged.

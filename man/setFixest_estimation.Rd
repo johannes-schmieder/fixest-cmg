@@ -21,12 +21,15 @@ setFixest_estimation(
   glm.iter = 25,
   glm.tol = 1e-08,
   data.save = FALSE,
-  reset = FALSE
+  reset = FALSE,
+  demeaner = NULL
 )
 
 getFixest_estimation()
 }
 \arguments{
+\item{demeaner}{NULL or a backend configuration from \code{MapDemeaner()}, \code{LsmrDemeaner()} or \code{CmgDemeaner()}. Put demeaning controls inside the constructor.}
+
 \item{data}{A data.frame containing the necessary variables to run the model.
 The variables of the non-linear right hand side of the formula are identified
 with this \code{data.frame} names. Can also be a matrix.}

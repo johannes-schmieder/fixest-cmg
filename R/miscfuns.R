@@ -2382,14 +2382,8 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
                   im_confident = FALSE, demeaner = NULL, ...) {
 
 
-  if(!is.null(demeaner)){
-    fixest_check_cmg_demeaner(demeaner)
-    if(!missing(tol) || !missing(iter) || !missing(fixef.algo)){
-      stop("Put tolerance and iteration controls in CmgDemeaner(); do not also supply tol, iter or fixef.algo.")
-    }
-    tol = demeaner$tol
-    iter = demeaner$maxiter
-  }
+  mc_demean = match.call()
+  explicit_demeaning_args = intersect(c("tol", "iter", "fixef.algo"), names(mc_demean))
 
   ANY_NA = FALSE
   # SK: to reassign class if X is data.frame, data.table or tibble. Optimally you would preserve all attributes,
@@ -2741,6 +2735,12 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
     }
   }
 
+  demeaner = fixest_resolve_demeaner(demeaner, tol, iter, fixef.algo,
+                                     explicit_demeaning_args)
+  tol = fixest_demeaner_tol(demeaner)
+  iter = fixest_demeaner_iter(demeaner)
+  fixef.algo = fixest_demeaner_algo(demeaner)
+
   #
   # Unclassing fes
   #
@@ -2828,11 +2828,8 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
                            fe_id_list = all_index_info$index, table_id_I = fixef_table_vector,
                            slope_flag_Q = slope.flag, slope_vars_list = slope.vars,
                            r_init = 0, nthreads = nthreads, 
-                           algo_extraProj = fixef.algo$extraProj, 
-                           algo_iter_warmup = fixef.algo$iter_warmup, 
-                           algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                           algo_iter_grandAcc = fixef.algo$iter_grandAcc,
-                           demeaner = demeaner)
+                           fixef.algo = fixef.algo,
+                             demeaner = demeaner)
 
   # Internal call
   if(fe_info){
@@ -7555,7 +7552,13 @@ setFixest_estimation = function(data = NULL, panel.id = NULL, fixef.rm = "perfec
                                 fixef.tol = 1e-6, fixef.iter = 10000, collin.tol = 1e-10,
                                 lean = FALSE, verbose = 0, warn = TRUE, fixef.keep_names = NULL,
                                 demeaned = FALSE, mem.clean = FALSE, glm.iter = 25,
-                                glm.tol = 1e-8, data.save = FALSE, reset = FALSE){
+                                glm.tol = 1e-8, data.save = FALSE, reset = FALSE, demeaner = NULL){
+
+  fixest_check_demeaner(demeaner)
+  if(!is.null(demeaner) && (!missing(fixef.tol) || !missing(fixef.iter))){
+    stop("When `demeaner` is provided, put fixed-effect controls inside ",
+         "MapDemeaner(), LsmrDemeaner() or CmgDemeaner().")
+  }
 
   check_set_arg(fixef.rm, "match(singletons, infinite_coef, perfect_fit, none)")
   check_arg(fixef.tol, collin.tol, glm.tol, "numeric scalar GT{0}")

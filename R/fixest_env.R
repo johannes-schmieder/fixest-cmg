@@ -99,7 +99,7 @@ fixest_env = function(fml, data, family = c("poisson", "negbin", "logit", "gauss
   args = args[nchar(args) > 0]
 
   if(origin_type != "feols" && (!is.null(demeaner) || "demeaner" %in% args)){
-    stop("The optional CMG demeaner currently supports OLS only.")
+    stop("Optional demeaning backends currently support OLS only.")
   }
 
   # Checking the args
@@ -297,13 +297,13 @@ fixest_env = function(fml, data, family = c("poisson", "negbin", "logit", "gauss
     }
   }
 
-  if(!is.null(demeaner)){
-    fixest_check_cmg_demeaner(demeaner)
-    if(any(c("fixef.tol", "fixef.iter", "fixef.algo") %in% args)){
-      stop("Put tolerance and iteration controls in CmgDemeaner(); do not also supply fixef.tol, fixef.iter or fixef.algo.")
-    }
-    fixef.tol = demeaner$tol
-    fixef.iter = demeaner$maxiter
+  if(origin_type == "feols"){
+    explicit_demeaning_args = intersect(c("fixef.tol", "fixef.iter", "fixef.algo"), args)
+    demeaner = fixest_resolve_demeaner(demeaner, fixef.tol, fixef.iter, fixef.algo,
+                                       explicit_demeaning_args)
+    fixef.tol = fixest_demeaner_tol(demeaner)
+    fixef.iter = fixest_demeaner_iter(demeaner)
+    fixef.algo = fixest_demeaner_algo(demeaner)
   }
 
   check_set_arg(fixef.rm, "match(singletons, infinite_coef, perfect_fit, none)")
@@ -2866,7 +2866,7 @@ fixest_env = function(fml, data, family = c("poisson", "negbin", "logit", "gauss
 
   # The main precision
 
-  if(is.null(demeaner)) check_value(fixef.tol, "numeric scalar GT{(10000*.Machine$double.eps)}")
+  if(is.null(demeaner) || inherits(demeaner, "fixest_demeaner_map")) check_value(fixef.tol, "numeric scalar GT{(10000*.Machine$double.eps)}")
   check_arg(fixef.iter, "integer scalar GE{1}")
 
   if(origin_type == "feNmlm"){
@@ -3074,7 +3074,7 @@ fixest_env = function(fml, data, family = c("poisson", "negbin", "logit", "gauss
   # we always assign the controls for the demeaning algorithm
   # => because in multiple FE estimations, isFixef  = FALSE
   # In any case there is no extra burden
-  if(!is.null(demeaner) && (multi_fixef || !isFixef || isSlope || length(fixef_vars) != 2L)){
+  if(inherits(demeaner, "fixest_demeaner_cmg") && (multi_fixef || !isFixef || isSlope || length(fixef_vars) != 2L)){
     stop("CMG currently requires exactly two categorical intercept fixed effects and a fixed FE specification.")
   }
   assign("demeaner", demeaner, env)

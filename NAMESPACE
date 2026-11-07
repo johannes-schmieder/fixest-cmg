@@ -197,3 +197,9 @@ export(NW, newey_west, DK, driscoll_kraay, conley)
 
 
 
+
+export(MapDemeaner)
+export(LsmrDemeaner)
+S3method(print,fixest_demeaner_map)
+S3method(print,fixest_demeaner_lsmr)
+S3method(print,fixest_demeaner_cmg)

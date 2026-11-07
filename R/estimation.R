@@ -48,8 +48,8 @@
 #' variables will return a `fixest_multi` object.
 #' @param X Numeric matrix of the regressors.
 #' @param fixef_df Matrix/data.frame of the fixed-effects.
-#' @param demeaner NULL (the native default) or a two-way OLS configuration
-#'   created by [CmgDemeaner()].
+#' @param demeaner NULL (the native default), or a configuration created by
+#'   [MapDemeaner()], [LsmrDemeaner()] or [CmgDemeaner()].
 #' @param fixef.algo `NULL` (default) or an object of class `demeaning_algo` obtained with
 #' the function [`demeaning_algo`]. If `NULL`, it falls to the defaults of [`demeaning_algo`]. 
 #' This arguments controls the settings of the demeaning algorithm.
@@ -642,6 +642,12 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
   }
 
   isFixef = get("isFixef", env)
+  if(!fromGLM){
+    # Configured controls are resolved in fixest_env, including prepared and
+    # multiple-model calls. GLM supplies its own per-iteration tolerances.
+    fixef.tol = get("fixef.tol", env)
+    fixef.iter = get("fixef.iter", env)
+  }
 
   # Used to solve with the reduced model
   xwx = dots$xwx
@@ -1067,10 +1073,7 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                                    fe_id_list = fixef_id_list, table_id_I = fixef_table_vector,
                                    slope_flag_Q = slope_flag, slope_vars_list = slope_vars,
                                    r_init = init, nthreads = nthreads, 
-                                   algo_extraProj = fixef.algo$extraProj, 
-                                   algo_iter_warmup = fixef.algo$iter_warmup, 
-                                   algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                                   algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                                   fixef.algo = fixef.algo,
                              demeaner = get0("demeaner", env, ifnotfound = NULL))
 
           X_demean = vars_demean$X_demean
@@ -1083,10 +1086,7 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                                         fe_id_list = fixef_id_list, table_id_I = fixef_table_vector,
                                         slope_flag_Q = slope_flag, slope_vars_list = slope_vars,
                                         r_init = init, nthreads = nthreads,
-                                        algo_extraProj = fixef.algo$extraProj, 
-                                        algo_iter_warmup = fixef.algo$iter_warmup, 
-                                        algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                                        algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                                        fixef.algo = fixef.algo,
                              demeaner = get0("demeaner", env, ifnotfound = NULL))
 
             iv.mat_demean = iv_vars_demean$X_demean
@@ -1282,10 +1282,7 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                                  fe_id_list = fixef_id_list, table_id_I = fixef_table_vector,
                                  slope_flag_Q = slope_flag, slope_vars_list = slope_vars,
                                  r_init = init, nthreads = nthreads,
-                                 algo_extraProj = fixef.algo$extraProj, 
-                                 algo_iter_warmup = fixef.algo$iter_warmup, 
-                                 algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                                 algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                                 fixef.algo = fixef.algo,
                              demeaner = get0("demeaner", env, ifnotfound = NULL))
 
         iv_vars_demean = fixest_demean(iv_lhs, iv.mat, weights, iterMax = fixef.iter,
@@ -1293,10 +1290,7 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                                     fe_id_list = fixef_id_list, table_id_I = fixef_table_vector,
                                     slope_flag_Q = slope_flag, slope_vars_list = slope_vars,
                                     r_init = init, nthreads = nthreads,
-                                    algo_extraProj = fixef.algo$extraProj, 
-                                    algo_iter_warmup = fixef.algo$iter_warmup, 
-                                    algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                                    algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                                    fixef.algo = fixef.algo,
                              demeaner = get0("demeaner", env, ifnotfound = NULL))
 
         X_demean = vars_demean$X_demean
@@ -1826,10 +1820,7 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                              fe_id_list = fixef_id_list, table_id_I = fixef_table_vector,
                              slope_flag_Q = slope_flag, slope_vars_list = slope_vars,
                              r_init = init, nthreads = nthreads,
-                             algo_extraProj = fixef.algo$extraProj, 
-                             algo_iter_warmup = fixef.algo$iter_warmup, 
-                             algo_iter_projAfterAcc = fixef.algo$iter_projAfterAcc, 
-                             algo_iter_grandAcc = fixef.algo$iter_grandAcc,
+                             fixef.algo = fixef.algo,
                              demeaner = get0("demeaner", env, ifnotfound = NULL))
     
     y_demean = vars_demean$y_demean
@@ -1880,7 +1871,9 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
           }
         }
       }
-    } else if(is.null(get0("demeaner", env, ifnotfound = NULL)) && any(res$iterations >= fixef.iter)){
+    } else if((is.null(get0("demeaner", env, ifnotfound = NULL)) ||
+               inherits(get("demeaner", env), "fixest_demeaner_map")) &&
+              any(res$iterations >= fixef.iter)){
       msg = paste0("Demeaning algorithm: Absence of convergence after reaching the maximum number of iterations (", fixef.iter, ").")
 
       res$convStatus = FALSE

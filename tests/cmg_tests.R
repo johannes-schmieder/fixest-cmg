@@ -7,7 +7,7 @@ d <- data.frame(a=rep(1:120,each=20),x=rnorm(n),x2=rnorm(n),z=rnorm(n),w=exp(rno
 d$b <- sample(1:15,n,TRUE)+15L*(d$a>60)
 d$y <- .7*d$x-.3*d$x2+rnorm(120)[d$a]+rnorm(30)[d$b]+rnorm(n)
 d$y2 <- d$y+.3*rnorm(n);d$endog <- .8*d$z+.3*d$x+rnorm(n)
-ctl <- CmgDemeaner(tol=1e-10, schur=schur)
+ctl <- CmgDemeaner(fixef_tol=1e-10, schur=schur)
 check <- function(fml,...) {
     cat("Checking",deparse(fml),"arguments",names(list(...)),"\n")
     a <- feols(fml,d,...,fixef.tol=1e-10)
@@ -60,7 +60,8 @@ fails<-function(expr)stopifnot(inherits(try(expr,silent=TRUE),"try-error"))
 bad <- ctl; bad$schur <- NA
 fails(feols(y~x|a+b,d,demeaner=bad))
 # Old saved configurations remain compatible and use the full graph.
-old <- CmgDemeaner(); old$schur <- NULL
+old <- structure(list(tol=1e-8, maxiter=10000L),
+                 class=c("fixest_demeaner_cmg", "fixest_demeaner"))
 old_fit <- feols(y~x+x2|a+b,d,weights=~w,demeaner=old)
 off_fit <- feols(y~x+x2|a+b,d,weights=~w,demeaner=CmgDemeaner(schur=FALSE))
 stopifnot(identical(coef(old_fit),coef(off_fit)),identical(resid(old_fit),resid(off_fit)))
@@ -86,8 +87,8 @@ d <- data.frame(a,b,x=rnorm(length(a)),z=rnorm(length(a)),w=exp(rnorm(length(a))
 d$y <- .8*d$x+rnorm(120)[a]+rnorm(12)[b]+rnorm(length(a))
 d$endog <- d$z+rnorm(length(a)); d$y2 <- d$y+rnorm(length(a))
 compare <- function(fml,...) {
-  off <- feols(fml,d,...,demeaned=TRUE,demeaner=CmgDemeaner(tol=1e-10,schur=FALSE))
-  on <- feols(fml,d,...,demeaned=TRUE,demeaner=CmgDemeaner(tol=1e-10,schur=TRUE))
+  off <- feols(fml,d,...,demeaned=TRUE,demeaner=CmgDemeaner(fixef_tol=1e-10,schur=FALSE))
+  on <- feols(fml,d,...,demeaned=TRUE,demeaner=CmgDemeaner(fixef_tol=1e-10,schur=TRUE))
   aa <- if(inherits(off,"fixest_multi")) as.list(off) else list(off)
   bb <- if(inherits(on,"fixest_multi")) as.list(on) else list(on)
   for(i in seq_along(aa)) stopifnot(identical(obs(aa[[i]]),obs(bb[[i]])),
