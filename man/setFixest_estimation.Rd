@@ -28,7 +28,7 @@ setFixest_estimation(
 getFixest_estimation()
 }
 \arguments{
-\item{demeaner}{NULL or a backend configuration from \code{MapDemeaner()}, \code{LsmrDemeaner()} or \code{CmgDemeaner()}. Put demeaning controls inside the constructor.}
+\item{demeaner}{NULL or a backend configuration from \code{MapDemeaner()}, \code{LsmrDemeaner()} or \code{CmgDemeaner()}. Put demeaning controls inside the constructor. See the section on demeaning backends.}
 
 \item{data}{A data.frame containing the necessary variables to run the model.
 The variables of the non-linear right hand side of the formula are identified
@@ -127,6 +127,9 @@ This is especially useful for estimations within loops, where the data changes
 at each iteration, such that postprocessing can be done outside the loop without issue.}
 
 \item{reset}{Logical scalar, default is \code{FALSE}. Whether to reset all values.}
+}
+\section{Demeaning backends}{
+A \code{demeaner} set here applies to every \code{feols} call. Selecting an optional backend per call is recommended. In particular, a global \code{\link{CmgDemeaner}} makes ordinary calls without exactly two categorical intercept effects fail by design, with no fallback. A \code{demeaner} cannot be set together with \code{fixef.tol} or \code{fixef.iter} in the same call. It does not change the inner loop of GLM estimations. Use \code{reset = TRUE} to clear it.
 }
 \value{
 The function \code{getFixest_estimation} returns the currently set global defaults.

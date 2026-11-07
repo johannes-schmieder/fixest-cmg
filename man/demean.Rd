@@ -26,7 +26,7 @@ demean(
 )
 }
 \arguments{
-\item{demeaner}{NULL (the native default), or a backend configuration created with \code{\link{MapDemeaner}}, \code{\link{LsmrDemeaner}} or \code{\link{CmgDemeaner}}.}
+\item{demeaner}{NULL (the native default), or a backend configuration created with \code{\link{MapDemeaner}}, \code{\link{LsmrDemeaner}} or \code{\link{CmgDemeaner}}. For a saved fit, see the section on saved fits and demeaning backends.}
 \item{X}{A matrix, vector, data.frame or a list OR a formula OR a \code{\link{feols}} estimation. If equal
 to a formula, then the argument \code{data} is required, and it must be of the type:
 \code{x1 + x2 ~ f1 + fe2} with on the LHS the variables to be centered, and on the RHS the factors
@@ -106,6 +106,17 @@ element MUST be consistent. Non compliance to these rules may simply lead your R
 break.}
 
 \item{...}{Not currently used.}
+}
+\section{Saved fits and demeaning backends}{
+When \code{X} is a \code{feols} fit:
+\itemize{
+\item With no backend and no native controls, the saved demeaned columns are returned if the fit has them; otherwise the columns are recomputed with the fit's own backend.
+\item \code{demeaner = ctl} recomputes with \code{ctl}.
+\item \code{demeaner = NULL} recomputes with the native backend.
+\item Explicit \code{tol}, \code{iter} or \code{fixef.algo}, with no backend, recomputes with the native backend. On a fit from an optional backend, native controls you omit take their native defaults; the optional backend's tolerance is never copied.
+\item Supplying a non-NULL \code{demeaner} together with native controls is an error.
+}
+For other input, optional backends accept bare vectors and data frames, including with \code{as.matrix = TRUE}. Native demeaning without an explicit backend keeps its usual validation.
 }
 \value{
 It returns a data.frame of the same number of columns as the number of variables to be centered.

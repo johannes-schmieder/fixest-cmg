@@ -2294,6 +2294,17 @@ xpd = function(fml, ..., add = NULL, lhs = NULL, rhs = NULL, add.after_pipe = NU
 #'
 #' A matrix can be returned if `as.matrix = TRUE`.
 #'
+#' @section Saved fits and demeaning backends:
+#' When `X` is a `feols` fit:
+#'
+#' - With no backend and no native controls, the saved demeaned columns are returned if the fit has them; otherwise the columns are recomputed with the fit's own backend.
+#' - `demeaner = ctl` recomputes with `ctl`.
+#' - `demeaner = NULL` recomputes with the native backend.
+#' - Explicit `tol`, `iter` or `fixef.algo`, with no backend, recomputes with the native backend. On a fit from an optional backend, native controls you omit take their native defaults; the optional backend's tolerance is never copied.
+#' - Supplying a non-NULL `demeaner` together with native controls is an error.
+#'
+#' For other input, optional backends accept bare vectors and data frames, including with `as.matrix = TRUE`. Native demeaning without an explicit backend keeps its usual validation.
+#'
 #' @examples
 #'
 #' # Illustration of the FWL theorem
@@ -7533,6 +7544,9 @@ getFixest_fml = function(){
 #'
 #' @return
 #' The function `getFixest_estimation` returns the currently set global defaults.
+#'
+#' @section Demeaning backends:
+#' A `demeaner` set here applies to every `feols` call. Selecting an optional backend per call is recommended. In particular, a global [`CmgDemeaner`] makes ordinary calls without exactly two categorical intercept effects fail by design, with no fallback. A `demeaner` cannot be set together with `fixef.tol` or `fixef.iter` in the same call. It does not change the inner loop of GLM estimations. Use `reset = TRUE` to clear it.
 #'
 #' @examples
 #'

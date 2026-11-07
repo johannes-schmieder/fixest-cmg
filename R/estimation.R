@@ -49,7 +49,10 @@
 #' @param X Numeric matrix of the regressors.
 #' @param fixef_df Matrix/data.frame of the fixed-effects.
 #' @param demeaner NULL (the native default), or a configuration created by
-#'   [MapDemeaner()], [LsmrDemeaner()] or [CmgDemeaner()].
+#'   [MapDemeaner()], [LsmrDemeaner()] or [CmgDemeaner()]. Put a backend's controls
+#'   in its constructor, and prefer selecting an optional backend per call. With
+#'   `only.env = TRUE`, set the backend when creating the environment and do not
+#'   supply it on reuse.
 #' @param fixef.algo `NULL` (default) or an object of class `demeaning_algo` obtained with
 #' the function [`demeaning_algo`]. If `NULL`, it falls to the defaults of [`demeaning_algo`]. 
 #' This arguments controls the settings of the demeaning algorithm.

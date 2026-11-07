@@ -78,7 +78,7 @@ feols.fit(
 )
 }
 \arguments{
-\item{demeaner}{NULL (the native default), or a backend configuration created with \code{\link{MapDemeaner}}, \code{\link{LsmrDemeaner}} or \code{\link{CmgDemeaner}}.}
+\item{demeaner}{NULL (the native default), or a backend configuration created with \code{\link{MapDemeaner}}, \code{\link{LsmrDemeaner}} or \code{\link{CmgDemeaner}}. Put a backend's controls in its constructor, and prefer selecting an optional backend per call. With \code{only.env = TRUE}, set the backend when creating the environment and do not supply it on reuse.}
 \item{fml}{A formula representing the relation to be estimated. For example: \code{fml = z~x+y}.
 To include fixed-effects, insert them in this formula using a pipe:
 e.g. \code{fml = z~x+y | fe_1+fe_2}. You can combine two fixed-effects with \code{^}:
