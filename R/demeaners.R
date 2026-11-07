@@ -142,7 +142,7 @@ fixest_resolve_demeaner = function(demeaner, fixef.tol, fixef.iter, fixef.algo,
       demeaner = CmgDemeaner(
         fixef_tol = if(is.null(demeaner$fixef_tol)) demeaner$tol else demeaner$fixef_tol,
         fixef_maxiter = if(is.null(demeaner$fixef_maxiter)) demeaner$maxiter else demeaner$fixef_maxiter,
-        schur = if(is.null(demeaner$schur)) FALSE else demeaner$schur
+        schur = if(is.null(demeaner$schur)) TRUE else demeaner$schur
       )
     } else if(inherits(demeaner, "fixest_demeaner_lsmr")){
       demeaner = do.call(LsmrDemeaner, unclass(demeaner))

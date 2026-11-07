@@ -14,9 +14,10 @@ fit <- feols(y ~ x1 + x2 | worker + firm, data,
 ```
 
 
-## Optional exact worker elimination
+## Exact worker elimination
 
-Elimination is opt-in, so the existing full-graph path remains available:
+Exact low-degree elimination is enabled by default. Set `schur = FALSE`
+to use CMG on the full graph:
 
 ```r
 cmg_only <- feols(y ~ x1 + x2 | worker + firm, data,

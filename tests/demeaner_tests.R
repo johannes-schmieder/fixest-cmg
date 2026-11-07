@@ -47,7 +47,8 @@ controls <- list(map=map_tight)
 if(requireNamespace("cmgr",quietly=TRUE)){
   controls$cmg <- CmgDemeaner(fixef_tol=1e-10,fixef_maxiter=10000L,schur=FALSE)
   controls$schur <- CmgDemeaner(fixef_tol=1e-10,fixef_maxiter=10000L,schur=TRUE)
-  stopifnot(identical(controls$cmg,CmgDemeaner(tol=1e-10,maxiter=10000L)))
+  stopifnot(identical(controls$schur,CmgDemeaner(tol=1e-10,maxiter=10000L)),
+            identical(controls$cmg,CmgDemeaner(tol=1e-10,maxiter=10000L,schur=FALSE)))
   fails(CmgDemeaner(fixef_tol=1e-8,tol=1e-8))
   fails(CmgDemeaner(fixef_maxiter=100,maxiter=100))
   fails(feols(y~x|a,d,demeaner=controls$cmg),"exactly two")

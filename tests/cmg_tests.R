@@ -59,9 +59,15 @@ stopifnot(max(abs(as.matrix(dm)-ref))<1e-8)
 fails<-function(expr)stopifnot(inherits(try(expr,silent=TRUE),"try-error"))
 bad <- ctl; bad$schur <- NA
 fails(feols(y~x|a+b,d,demeaner=bad))
-# Old saved configurations remain compatible and use the full graph.
+# Missing Schur settings adopt the default; explicit FALSE is preserved.
 old <- structure(list(tol=1e-8, maxiter=10000L),
                  class=c("fixest_demeaner_cmg", "fixest_demeaner"))
+old_fit <- feols(y~x+x2|a+b,d,weights=~w,demeaner=old)
+default_fit <- feols(y~x+x2|a+b,d,weights=~w,demeaner=CmgDemeaner())
+stopifnot(identical(coef(old_fit),coef(default_fit)),
+          identical(resid(old_fit),resid(default_fit)),
+          any(grepl("schur: TRUE",capture.output(print(old)),fixed=TRUE)))
+old$schur <- FALSE
 old_fit <- feols(y~x+x2|a+b,d,weights=~w,demeaner=old)
 off_fit <- feols(y~x+x2|a+b,d,weights=~w,demeaner=CmgDemeaner(schur=FALSE))
 stopifnot(identical(coef(old_fit),coef(off_fit)),identical(resid(old_fit),resid(off_fit)))
@@ -88,7 +94,7 @@ d$y <- .8*d$x+rnorm(120)[a]+rnorm(12)[b]+rnorm(length(a))
 d$endog <- d$z+rnorm(length(a)); d$y2 <- d$y+rnorm(length(a))
 compare <- function(fml,...) {
   off <- feols(fml,d,...,demeaned=TRUE,demeaner=CmgDemeaner(fixef_tol=1e-10,schur=FALSE))
-  on <- feols(fml,d,...,demeaned=TRUE,demeaner=CmgDemeaner(fixef_tol=1e-10,schur=TRUE))
+  on <- feols(fml,d,...,demeaned=TRUE,demeaner=CmgDemeaner(fixef_tol=1e-10))
   aa <- if(inherits(off,"fixest_multi")) as.list(off) else list(off)
   bb <- if(inherits(on,"fixest_multi")) as.list(on) else list(on)
   for(i in seq_along(aa)) stopifnot(identical(obs(aa[[i]]),obs(bb[[i]])),

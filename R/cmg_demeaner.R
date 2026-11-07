@@ -6,11 +6,11 @@
 #'   numerically equivalent to the native MAP iterate-change tolerance.
 #' @param fixef_maxiter Maximum PCG iterations per residualized column.
 #' @param schur Enable exact low-degree elimination in the larger fixed-effect
-#'   block (normally workers); FALSE retains the full CMG graph.
+#'   block (normally workers). Enabled by default; FALSE retains the full CMG graph.
 #' @param tol,maxiter Compatibility aliases for fixef_tol and fixef_maxiter.
 #'   Do not supply an alias and its corresponding canonical argument together.
 #' @export
-CmgDemeaner = function(fixef_tol = 1e-8, fixef_maxiter = 10000L, schur = FALSE,
+CmgDemeaner = function(fixef_tol = 1e-8, fixef_maxiter = 10000L, schur = TRUE,
                        tol = NULL, maxiter = NULL){
   if(!requireNamespace("cmgr", quietly = TRUE)){
     stop("CmgDemeaner() requires the optional 'cmgr' package.")
@@ -28,6 +28,6 @@ print.fixest_demeaner_cmg = function(x, ...){
   cat("<fixest_demeaner: CMG>\n")
   cat("  fixef_tol: ", if(is.null(x$fixef_tol)) x$tol else x$fixef_tol, "\n", sep = "")
   cat("  fixef_maxiter: ", if(is.null(x$fixef_maxiter)) x$maxiter else x$fixef_maxiter, "\n", sep = "")
-  cat("  schur: ", isTRUE(x$schur), "\n", sep = "")
+  cat("  schur: ", if(is.null(x$schur)) TRUE else isTRUE(x$schur), "\n", sep = "")
   invisible(x)
 }
