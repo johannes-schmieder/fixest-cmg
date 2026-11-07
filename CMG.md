@@ -13,14 +13,29 @@ fit <- feols(y ~ x1 + x2 | worker + firm, data,
 
 Install the companion `cmgr` source package first. The local sources are
 `/Users/johannes/Git/cmgr` and `/Users/johannes/Git/fixest-cmg`. Build and use
-an isolated R library; the experiment's installed library is retained at
-`/Users/johannes/research/fereg/fixest-cmg-20261106/implementation/library`.
+an isolated R library. The current local installation is at
+`~/research/fereg/fixest-cmg-current/library`. Reinstall after changing cmgr's
+source or bundled CMG revision; updating a Git checkout does not update R's
+installed package.
+
+```sh
+mkdir -p "$HOME/research/fereg/fixest-cmg-current/library"
+R CMD INSTALL --library="$HOME/research/fereg/fixest-cmg-current/library" /Users/johannes/Git/cmgr
+R_LIBS_USER="$HOME/research/fereg/fixest-cmg-current/library" R CMD INSTALL \
+  --library="$HOME/research/fereg/fixest-cmg-current/library" /Users/johannes/Git/fixest-cmg
+```
+
+In a fresh R session:
 
 ```r
-.libPaths(c(path.expand("~/research/fereg/fixest-cmg-20261106/implementation/library"),
-            .libPaths()))
+.libPaths(c(path.expand("~/research/fereg/fixest-cmg-current/library"), .libPaths()))
 library(fixest)
+readLines(system.file("CMG-SOURCE", package = "cmgr"))
 ```
+
+The current build uses CMG `e5613e8` and its default 32-level cap. The dated
+`fixest-cmg-20261106/implementation` and `main-review-20261107` libraries preserve
+previous experiments; they are not the current installation.
 
 Exactly two categorical intercept fixed effects are supported, including
 weighted OLS, FE-only, IV, multiple outcomes, stepwise regressors, split samples,
