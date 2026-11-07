@@ -517,7 +517,10 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
                  fixef.keep_names = NULL, demeaned = FALSE, mem.clean = FALSE, 
                  only.env = FALSE, env, demeaner = NULL, ...){
 
-  if(!missing(env) && !is.null(demeaner)){
+  reuse_env = !missing(env)
+  explicit_native_controls = intersect(c("fixef.tol", "fixef.iter", "fixef.algo"),
+                                       names(match.call()))
+  if(reuse_env && !is.null(demeaner)){
     stop("When reusing an environment, set demeaner when creating that environment.")
   }
   dots = list(...)
@@ -643,10 +646,21 @@ feols = function(fml, data, vcov, weights, offset, subset, split, fsplit, split.
 
   isFixef = get("isFixef", env)
   if(!fromGLM){
-    # Configured controls are resolved in fixest_env, including prepared and
-    # multiple-model calls. GLM supplies its own per-iteration tolerances.
-    fixef.tol = get("fixef.tol", env)
-    fixef.iter = get("fixef.iter", env)
+    # Constructor controls and internal split/multiple-model calls use the
+    # prepared environment. Explicit native controls on environment reuse
+    # retain their usual precedence. GLM supplies per-iteration tolerances.
+    env_demeaner = get0("demeaner", env, ifnotfound = NULL)
+    if(reuse_env && length(explicit_native_controls) > 0L &&
+       !is.null(env_demeaner) && !inherits(env_demeaner, "fixest_demeaner_map")){
+      stop("When reusing an optional-backend environment, set demeaning controls ",
+           "in its constructor when creating that environment.")
+    }
+    if(!reuse_env || !"fixef.tol" %in% explicit_native_controls){
+      fixef.tol = get("fixef.tol", env)
+    }
+    if(!reuse_env || !"fixef.iter" %in% explicit_native_controls){
+      fixef.iter = get("fixef.iter", env)
+    }
   }
 
   # Used to solve with the reduced model

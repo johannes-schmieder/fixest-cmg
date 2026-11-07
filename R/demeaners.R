@@ -253,6 +253,14 @@ fixest_demean = function(y, X_raw, r_weights, iterMax, diffMax, r_nb_id_Q,
                      algo_iter_grandAcc = fixef.algo$iter_grandAcc))
   }
 
+  # Native demeaning accepts lists and bare vectors as X. Optional backends
+  # require an observation-by-column matrix; preserve scalar sentinels.
+  if(is.list(X_raw)){
+    X_raw = do.call(cbind, X_raw)
+  } else if(is.numeric(X_raw) && is.null(dim(X_raw)) && length(X_raw) > 1L){
+    X_raw = matrix(X_raw, ncol = 1L)
+  }
+
   if(inherits(demeaner, "fixest_demeaner_cmg")){
     if(length(r_nb_id_Q) != 2L || any(slope_flag_Q != 0L)){
       stop("CMG currently requires exactly two categorical intercept fixed effects.")

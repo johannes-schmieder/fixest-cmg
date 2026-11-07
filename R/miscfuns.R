@@ -2744,11 +2744,16 @@ demean = function(X, f, slope.vars = NULL, slope.flag = NULL, data, weights,
     }
   }
 
-  demeaner = fixest_resolve_demeaner(demeaner, tol, iter, fixef.algo,
-                                     explicit_demeaning_args)
-  tol = fixest_demeaner_tol(demeaner)
-  iter = fixest_demeaner_iter(demeaner)
-  fixef.algo = fixest_demeaner_algo(demeaner)
+  # Native demean() accepts every positive tolerance and its trusted-input path
+  # deliberately skips validation. Explicit backend constructors have their
+  # own control contract.
+  if(!is.null(demeaner)){
+    demeaner = fixest_resolve_demeaner(demeaner, tol, iter, fixef.algo,
+                                       explicit_demeaning_args)
+    tol = fixest_demeaner_tol(demeaner)
+    iter = fixest_demeaner_iter(demeaner)
+    fixef.algo = fixest_demeaner_algo(demeaner)
+  }
 
   #
   # Unclassing fes
