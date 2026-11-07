@@ -11,6 +11,36 @@ fit <- feols(y ~ x1 + x2 | worker + firm, data,
              demeaner = CmgDemeaner(tol = 1e-8), nthreads = 4)
 ```
 
+
+## Optional exact worker elimination
+
+Elimination is opt-in, so the existing full-graph path remains available:
+
+```r
+cmg_only <- feols(y ~ x1 + x2 | worker + firm, data,
+                  demeaner = CmgDemeaner(schur = FALSE), nthreads = 4)
+cmg_schur <- feols(y ~ x1 + x2 | worker + firm, data,
+                   demeaner = CmgDemeaner(schur = TRUE), nthreads = 4)
+```
+
+`schur = TRUE` selects the FE block with more levels (normally workers; ties
+select the first block in the prepared ID order). It eliminates levels with
+at most five distinct neighbors after combining repeated worker--firm
+observations. Higher-degree workers remain as vertices of the system actually
+solved. Stayers create no firm edges, but their observations and within-worker
+variation remain in the regression. No sampling is used, and CMG's source,
+options and PCG implementation are unchanged. This option is available through
+both `CmgDemeaner()` and `cmgr::demean_fixest()`.
+
+Use the same tolerance, threads, sample and formula for paired on/off timings.
+Both modes check the original weighted FE moments. The low-level function's
+`reduction` diagnostics report the selected block and eliminated/retained level
+counts; named `timing` entries report the actual graph size and native setup and
+projection times. Include setup in complete-call comparisons. Turning
+elimination off isolates its incremental contribution conditional on CMG; it
+does not create a Schur-without-CMG solver. Native fixest remains a third
+comparison with its own, numerically different convergence criterion.
+
 Install the companion `cmgr` source package first. The local sources are
 `/Users/johannes/Git/cmgr` and `/Users/johannes/Git/fixest-cmg`. Build and use
 an isolated R library. The current local installation is at

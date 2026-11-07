@@ -1,5 +1,5 @@
 library(fixest)
-if(requireNamespace("cmgr",quietly=TRUE)) local({
+if(requireNamespace("cmgr",quietly=TRUE)) for(schur in c(FALSE, TRUE)) local({
 setFixest_nthreads(1)
 set.seed(97012)
 n <- 2400L
@@ -7,7 +7,7 @@ d <- data.frame(a=rep(1:120,each=20),x=rnorm(n),x2=rnorm(n),z=rnorm(n),w=exp(rno
 d$b <- sample(1:15,n,TRUE)+15L*(d$a>60)
 d$y <- .7*d$x-.3*d$x2+rnorm(120)[d$a]+rnorm(30)[d$b]+rnorm(n)
 d$y2 <- d$y+.3*rnorm(n);d$endog <- .8*d$z+.3*d$x+rnorm(n)
-ctl <- CmgDemeaner(tol=1e-10)
+ctl <- CmgDemeaner(tol=1e-10, schur=schur)
 check <- function(fml,...) {
     cat("Checking",deparse(fml),"arguments",names(list(...)),"\n")
     a <- feols(fml,d,...,fixef.tol=1e-10)
@@ -57,11 +57,52 @@ dm<-demean(dd[c("y","x")],list(dd$a,dd$b),weights=dd$w,demeaner=ctl)
 ref<-lm.wfit(model.matrix(~factor(a)+factor(b),dd),as.matrix(dd[c("y","x")]),w=dd$w)$residuals
 stopifnot(max(abs(as.matrix(dm)-ref))<1e-8)
 fails<-function(expr)stopifnot(inherits(try(expr,silent=TRUE),"try-error"))
+bad <- ctl; bad$schur <- NA
+fails(feols(y~x|a+b,d,demeaner=bad))
+# Old saved configurations remain compatible and use the full graph.
+old <- CmgDemeaner(); old$schur <- NULL
+old_fit <- feols(y~x+x2|a+b,d,weights=~w,demeaner=old)
+off_fit <- feols(y~x+x2|a+b,d,weights=~w,demeaner=CmgDemeaner(schur=FALSE))
+stopifnot(identical(coef(old_fit),coef(off_fit)),identical(resid(old_fit),resid(off_fit)))
 fails(feols(y~x,d,demeaner=ctl))
 fails(feols(y~x|a,d,demeaner=ctl))
 fails(feols(y~x|a+b+I(a>30),d,demeaner=ctl))
 fails(feols(y~x|a[z]+b,d,demeaner=ctl))
 fails(feols(y~x|a+b,d,demeaner=ctl,fixef.tol=1e-8))
 fails(feglm(y~x|a+b,d,family="gaussian",demeaner=ctl))
-cat("fixest CMG integration tests passed\n")
+cat("fixest CMG integration tests passed; schur=",schur,"\n")
+})
+
+# Exercise actual low-degree elimination in complete fits. Compare to the
+# unchanged CMG-only path; dense dummy QR independently checks weighted OLS.
+if(requireNamespace("cmgr",quietly=TRUE)) local({
+set.seed(20261108)
+a <- rep(1:120,each=6)
+b <- unlist(lapply(1:120,function(i) {
+  path <- if(i %% 5L == 0L) 1:6 else rep(c(i %% 6L+1L,(i+1L) %% 6L+1L),3)
+  path + 6L*(i>60)
+}))
+d <- data.frame(a,b,x=rnorm(length(a)),z=rnorm(length(a)),w=exp(rnorm(length(a))))
+d$y <- .8*d$x+rnorm(120)[a]+rnorm(12)[b]+rnorm(length(a))
+d$endog <- d$z+rnorm(length(a)); d$y2 <- d$y+rnorm(length(a))
+compare <- function(fml,...) {
+  off <- feols(fml,d,...,demeaned=TRUE,demeaner=CmgDemeaner(tol=1e-10,schur=FALSE))
+  on <- feols(fml,d,...,demeaned=TRUE,demeaner=CmgDemeaner(tol=1e-10,schur=TRUE))
+  aa <- if(inherits(off,"fixest_multi")) as.list(off) else list(off)
+  bb <- if(inherits(on,"fixest_multi")) as.list(on) else list(on)
+  for(i in seq_along(aa)) stopifnot(identical(obs(aa[[i]]),obs(bb[[i]])),
+    max(abs(coef(aa[[i]])-coef(bb[[i]])))<1e-9,
+    max(abs(resid(aa[[i]])-resid(bb[[i]])))<1e-9,
+    max(abs(vcov(aa[[i]])-vcov(bb[[i]])))<1e-9)
+  invisible(on)
+}
+f <- compare(y~x|a+b,weights=~w,vcov=~a+b)
+qr <- lm.wfit(model.matrix(~factor(a)+factor(b)+x,d),d$y,w=d$w)
+stopifnot(max(abs(resid(f)-qr$residuals))<1e-9,
+          abs(coef(f)[['x']]-tail(qr$coefficients,1))<1e-9)
+compare(y~x|b+a,weights=~w)
+compare(y~x|a+b|endog~z,weights=~w)
+compare(c(y,y2)~x|a+b,weights=~w,split=~I(a>60))
+compare(y~x|a+b,weights=~w,offset=~z)
+cat("Actual Schur elimination in weighted OLS/IV/multiple/split/offset fits passed\n")
 })

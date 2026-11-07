@@ -5,12 +5,14 @@
 #' @param tol Relative weighted fixed-effect moment tolerance. This is not
 #'   numerically equivalent to the native MAP iterate-change tolerance.
 #' @param maxiter Maximum PCG iterations per residualized column.
+#' @param schur Enable exact low-degree elimination in the larger fixed-effect
+#'   block (normally workers); FALSE retains the full CMG graph.
 #' @export
-CmgDemeaner = function(tol = 1e-8, maxiter = 10000L){
+CmgDemeaner = function(tol = 1e-8, maxiter = 10000L, schur = FALSE){
   if(!requireNamespace("cmgr", quietly = TRUE)){
     stop("CmgDemeaner() requires the optional 'cmgr' package.")
   }
-  cmgr::CmgDemeaner(tol, maxiter)
+  cmgr::CmgDemeaner(tol, maxiter, schur)
 }
 
 fixest_check_cmg_demeaner = function(demeaner){
@@ -21,7 +23,8 @@ fixest_check_cmg_demeaner = function(demeaner){
     stop("The CMG demeaner requires the optional 'cmgr' package.")
   }
   # Revalidate even when a configuration was modified or unserialized.
-  cmgr::CmgDemeaner(demeaner$tol, demeaner$maxiter)
+  cmgr::CmgDemeaner(demeaner$tol, demeaner$maxiter,
+                    if(is.null(demeaner$schur)) FALSE else demeaner$schur)
   invisible(NULL)
 }
 
@@ -47,5 +50,6 @@ fixest_demean = function(y, X_raw, r_weights, iterMax, diffMax, r_nb_id_Q,
   cmgr::demean_fixest(y, X_raw, fe_id_list, r_nb_id_Q,
                      weights = if(length(r_weights) == 1L) NULL else r_weights,
                      tol = demeaner$tol, maxiter = demeaner$maxiter,
-                     nthreads = nthreads)
+                     nthreads = nthreads,
+                     schur = if(is.null(demeaner$schur)) FALSE else demeaner$schur)
 }
